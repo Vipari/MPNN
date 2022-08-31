@@ -1,11 +1,15 @@
 package main
 
-import (
-	"fmt"
+type MPNN struct {
+}
 
-	"gonum.org/v1/gonum/mat"
-)
+func initMPNN(sizes []int) MPNN {
+
+	network := MPNN{}
+
+	return network
+}
 
 func main() {
-	fmt.Println(mat.NewVecDense(3, []float64{1, 2, 3}).RawVector().Data)
+
 }
