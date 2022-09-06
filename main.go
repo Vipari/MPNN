@@ -19,22 +19,25 @@ type MPNN struct { // 3 Layer Neural Network
 	out        int
 	hidWeights *mat.Dense // Matrix for input layer -> hidden layer weights
 	outWeights *mat.Dense // Matrix for hidden layer -> input layer weights
-	learnRate  float64    // Scales how quickly SGD should work [Too small = Learns slow --- Too big = Doesn't minimize cost function]
+	learnRate  float64    // Scales how quickly SGD should work [Too small = Learns slow -- Too big = Doesn't minimize cost function]
 }
 
 func initRandArray(size int, fromSize float64) []float64 {
 	var arr = make([]float64, size)
+
+	// Sets a uniform range between +-1 / sqrt(size of last layer), ensures network starts off with unsure predictions.
 	dist := distuv.Uniform{
 		Min: -1 / math.Sqrt(fromSize),
 		Max: 1 / math.Sqrt(fromSize),
 		Src: rand.NewSource(uint64(time.Now().UnixNano())),
-	} // Sets a uniform range between +-1 / sqrt(size of last layer)
+	}
 
+	// Unscaled random
 	// dist := distuv.Uniform{
 	// 	Min: -1,
 	// 	Max: 1,
 	// 	Src: rand.NewSource(uint64(time.Now().UnixNano())),
-	// } // Unscaled random
+	// }
 
 	for i := range arr {
 		arr[i] = dist.Rand()
@@ -141,54 +144,18 @@ func apply(fn func(i, j int, f float64) float64, m mat.Matrix) mat.Matrix {
 	return out
 }
 
-func printMPNN(network MPNN) { // Prints the weights of the network
-
-	fmt.Println("{Key: i2.h4 reads as \"Input Neuron 2 to Hidden Neuron 4\"}")
-
-	fmt.Println("\nLearn Rate: ", network.learnRate)
-
-	fmt.Println("[Input -> Hidden]")
-
-	for i := 0; i < network.hidden; i++ {
-		fmt.Print("Input ", i, ": ")
-
-		for j := 0; j < network.in; j++ {
-
-			fmt.Print(" i", i, ".h", j, ":")
-			if network.hidWeights.At(i, j) > 0 {
-				fmt.Print(" ")
-			}
-
-			fmt.Printf("%.4f  ", network.hidWeights.At(i, j))
-		}
-		fmt.Println()
-	}
-
-	fmt.Println("\n[Hidden -> Output]")
-
-	for i := 0; i < network.out; i++ {
-		fmt.Print("Hidden ", i, ": ")
-
-		for j := 0; j < network.hidden; j++ {
-
-			fmt.Print(" h", i, ".o", j, ":")
-			if network.outWeights.At(i, j) > 0 {
-				fmt.Print(" ")
-			}
-
-			fmt.Printf("%.4f  ", network.outWeights.At(i, j))
-		}
-		fmt.Println()
-	}
-}
 func printMatrix(m mat.Matrix) {
 	r, c := m.Dims()
 	for i := 0; i < r; i++ {
 		for j := 0; j < c; j++ {
-			fmt.Print("Output Neuron ", i, ": ", m.At(i, j), " ")
+			if m.At(i, j) > 0 {
+				fmt.Print(" ")
+			}
+			fmt.Printf("%.4f ", m.At(i, j))
 		}
 		fmt.Println()
 	}
+	fmt.Println()
 }
 
 func main() {
@@ -200,6 +167,13 @@ func main() {
 		0.62,
 		0.01,
 	}, net)
-	printMPNN(net)
+
+	fmt.Println("[Input Layer -> Hidden Layer Matrix]")
+	printMatrix(net.hidWeights)
+
+	fmt.Println("[Hidden Layer-> Output Layer Matrix]")
+	printMatrix(net.outWeights)
+
+	fmt.Println("[Guess Matrix]")
 	printMatrix(guess)
 }
