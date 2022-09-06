@@ -54,7 +54,10 @@ func initMPNN(sizes []int, learn float64) (network MPNN) {
 		learnRate: learn,
 	}
 
-	//Create matrixes for weights of neuron all neuron pairs between layers
+	// Create weight matrix in between each neuron layer.
+	// # of Inputs = # of Columns
+	// # of Outputs = # of Rows
+	// Simplifies the math to a few matrix operations this way.
 
 	network.hidWeights = mat.NewDense(
 		network.hidden, network.in,
@@ -73,9 +76,12 @@ func initMPNN(sizes []int, learn float64) (network MPNN) {
 func forwardProp(input []float64, network MPNN) mat.Matrix {
 	inLayer := mat.NewDense(len(input), 1, input)
 	inLayerWeightsIn := dot(network.hidWeights, inLayer)
+
 	inLayerWeightsOut := apply(sigmoid, inLayerWeightsIn)
 	hidLayerWeightsIn := dot(network.outWeights, inLayerWeightsOut)
+
 	hidLayerWeightsOut := apply(sigmoid, hidLayerWeightsIn)
+
 	return hidLayerWeightsOut
 
 }
@@ -159,14 +165,10 @@ func printMatrix(m mat.Matrix) {
 }
 
 func main() {
-	var net MPNN = initMPNN([]int{5, 10, 5}, 0.01)
-	guess := forwardProp([]float64{
-		0.25,
-		0.1,
-		0.99,
-		0.62,
-		0.01,
-	}, net)
+	var net MPNN = initMPNN([]int{10, 20, 5}, 0.01)
+
+	randInput := initRandArray(net.in, 1)
+	guess := forwardProp(randInput, net)
 
 	fmt.Println("[Input Layer -> Hidden Layer Matrix]")
 	printMatrix(net.hidWeights)
