@@ -75,19 +75,54 @@ func initMPNN(sizes []int, learn float64) (network MPNN) {
 // σ(W ⋅ A)
 func forwardProp(input []float64, network MPNN) mat.Matrix {
 	inLayer := mat.NewDense(len(input), 1, input)
+
 	inLayerWeightsIn := dot(network.hidWeights, inLayer)
-
 	inLayerWeightsOut := apply(sigmoid, inLayerWeightsIn)
-	hidLayerWeightsIn := dot(network.outWeights, inLayerWeightsOut)
 
+	hidLayerWeightsIn := dot(network.outWeights, inLayerWeightsOut)
 	hidLayerWeightsOut := apply(sigmoid, hidLayerWeightsIn)
 
 	return hidLayerWeightsOut
 
 }
 
-// This is where the network updates the weights bases on stochastic gradient descent. (Training)
-func backProp() {
+// This is where the network updates the weights based on gradient descent. (Training)
+func (net *MPNN) backProp(input []float64, target []float64) {
+
+	// Forward Propagation
+	// Can't use fowardProp() because intermediary values are needed
+	inLayer := mat.NewDense(len(input), 1, input)
+
+	inLayerWeightsIn := dot(net.hidWeights, inLayer)
+	inLayerWeightsOut := apply(sigmoid, inLayerWeightsIn)
+
+	hidLayerWeightsIn := dot(net.outWeights, inLayerWeightsOut)
+	hidLayerWeightsOut := apply(sigmoid, hidLayerWeightsIn)
+
+	// Find error
+	// Difference between predicted output and actual value
+	actual := mat.NewDense(len(target), 1, target)      // Target data
+	outputError := sub(actual, hidLayerWeightsOut)      // How far the predicted output is from the target data
+	hiddenError := dot(net.outWeights.T(), outputError) // Calculus to find hidden layer error from the output error
+
+	// Back Propagation
+	// Adjust each weight a little bit by the error of the next layer, going from the output back towards the input.
+
+	// Adjust the output layer weights [hidden -> output] by the output error
+	//This neat little bit of calculus calculates the needed change in weights and adjusts the weights using that.
+	net.outWeights = add(net.outWeights,
+		scale(net.learnRate,
+			dot(mult(outputError, sigmoidDerivative(hidLayerWeightsOut)),
+				inLayerWeightsOut.T()))).(*mat.Dense)
+
+	// Adjust hidden layer weights [input -> hidden] by the hidden error
+	net.hidWeights = add(net.hidWeights,
+		scale(net.learnRate,
+			dot(mult(hiddenError, sigmoidDerivative(inLayerWeightsOut)),
+				inLayer.T()))).(*mat.Dense)
+
+	// ***Haven't gotten to it yet, but all you would have to do now is load it up with some training data and save the weight's
+	// values for future use (so you don't have to train every time you run the program)!
 
 }
 
@@ -99,8 +134,14 @@ func backProp() {
 func sigmoid(p1, p2 int, x float64) float64 { // Squishes input between 0 and 1, resembles a smooth step function.
 	return 1 / (1 + math.Exp(-x))
 }
-func sigmoidDerivative(x float64) float64 {
-	return sigmoid(0, 0, x) * (1 - sigmoid(0, 0, x))
+func sigmoidDerivative(m mat.Matrix) mat.Matrix {
+	rows, _ := m.Dims()
+	o := make([]float64, rows)
+	for i := range o {
+		o[i] = 1
+	}
+	ones := mat.NewDense(rows, 1, o)
+	return mult(m, sub(ones, m))
 }
 
 func dot(m mat.Matrix, n mat.Matrix) mat.Matrix {
@@ -110,7 +151,7 @@ func dot(m mat.Matrix, n mat.Matrix) mat.Matrix {
 	out.Product(m, n)
 	return out
 }
-func scale(m mat.Matrix, factor float64) mat.Matrix {
+func scale(factor float64, m mat.Matrix) mat.Matrix {
 	r, c := m.Dims()
 	out := mat.NewDense(r, c, nil)
 	out.Scale(factor, m)
